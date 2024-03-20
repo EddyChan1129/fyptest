@@ -35,6 +35,13 @@ def find_similar_3month_period(ticker):
     return most_similar_period_start, most_similar_period_end, min_distance
 
 # Example usage
+# Example usage
 ticker = "AAPL"
 most_similar_start, most_similar_end, similarity_score = find_similar_3month_period(ticker)
+
+if most_similar_start is not None and most_similar_end is not None:
+    print(f"Most similar 3-month period starts on {most_similar_start.date()} and ends on {most_similar_end.date()}, with a similarity score of {similarity_score:.2f}")
+else:
+    print("Could not find a similar 3-month period.")
+
 print(f"Most similar 3-month period starts on {most_similar_start.date()} and ends on {most_similar_end.date()}, with a similarity score of {similarity_score:.2f}")

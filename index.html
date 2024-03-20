@@ -26,13 +26,10 @@
 
             const ticker = document.getElementById('ticker').value;
             const response = await fetch(`http://localhost:5500/analyze?ticker=${ticker}`);
-            const data = await response.json();
-            document.getElementById('result').innerText = JSON.stringify(data, null, 2);
         };
     </script>
     <script>
         let valuable = document.getElementById('ticker');
-
 
     </script>
 </body>

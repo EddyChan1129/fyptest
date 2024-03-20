@@ -11,14 +11,10 @@ pd.set_option('display.max_rows', None)
 app = Flask(__name__)
 CORS(app)
 
-def get_10year_stock_data(ticker, period="10y"):
+def get_stock_data(ticker, period="1y"):
     data = yf.download(ticker, period=period)
     return data
 
-def get_3mounth_stock_data(ticker, period="3m"):
-    data = yf.download(ticker, period=period)
-    return data
-    
 
 
 def calculate_technical_indicators(data):
@@ -77,12 +73,12 @@ def rank_indicators(data):
 @app.route('/analyze', methods=['GET'])
 def analyze_stock():
     ticker = request.args.get('ticker')
-    y10_data = get_stock_data(ticker)
+    data = get_stock_data(ticker)
 
     
-   """  data_with_indicators = calculate_technical_indicators(data)
+    data_with_indicators = calculate_technical_indicators(data)
     ranked = rank_indicators(data_with_indicators) 
-    return jsonify(ranked)"""
+    return jsonify(ranked)
 
 
 if __name__ == '__main__':
