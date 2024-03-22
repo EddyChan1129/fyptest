@@ -78,14 +78,15 @@ def calculate_profit(actual_data, predicted_data, indicator, init_price):
     profit = 0
     bought = False
     for i in range(1, len(actual_data)):
-        if predicted_data[i] > actual_data[i] and not bought:
+        if predicted_data.iloc[i] > actual_data.iloc[i] and not bought:
             bought = True
-            profit -= actual_data[i]
-        elif predicted_data[i] < actual_data[i] and bought:
+            profit -= actual_data.iloc[i]
+
+        elif predicted_data.iloc[i] < actual_data.iloc[i] and bought:
             bought = False
-            profit += actual_data[i]
+            profit += actual_data.iloc[-1]
     if bought:
-        profit += actual_data[-1]
+        profit += actual_data.iloc[-1]
     
     # Calculate the final price
     final_price = init_price + profit
