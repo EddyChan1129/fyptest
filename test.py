@@ -49,13 +49,13 @@ def find_similar_periods(ticker, current_start_date, current_end_date, past_star
             try:
                 past_data = get_stock_data(ticker, start_date, end_date)
                 similarity_score = calculate_similarity(current_data['Close'], past_data['Close'])
-                similar_periods[(start_date, end_date)] = similarity_score
+                similar_periods[(start_date, end_date)] = (similarity_score, (start_date, end_date))
             except Exception as e:
                 print(f"Failed to get data for period {start_date} to {end_date}: {e}")
     
-    ranked_periods = sorted(similar_periods.items(), key=lambda x: x[1])
+    ranked_periods = sorted(similar_periods.items(), key=lambda x: x[1][0])
     
-    return ranked_periods[:top_n]
+    return [x[1][1] for x in ranked_periods[:top_n]]
 
 
 def calculate_profit(actual_data, predicted_data, indicator, init_price):
@@ -110,34 +110,6 @@ past_start_year = 2014
 past_end_year = 2024
 step_months = 3
 
-similar_periods = find_similar_periods(ticker_symbol, current_start, current_end, past_start_year, past_end_year, step_months)
-for i, period in enumerate(similar_periods, 1):
-    print(f"The {i}{'' if i == 0 else 'st' if i == 1 else 'nd' if i == 2 else 'rd' if i == 3 else 'th'} most similar year period is:", period[0])
-
-    # The most simliar period is the first period
-    if ( i == 1):
-         #Fetch the data for the two periods
-        data_current = get_stock_data(ticker_symbol, current_start, current_end)
-        # period[0][0] is the start date and period[0][1] is the end date
-        data_similar = get_stock_data(ticker_symbol, period[0][0], period[0][1])
-
-        # Plot the closing prices for the current period
-        plt.figure(figsize=(14, 7))
-        plt.plot(data_current.index, data_current['Close'], label='Current Period')
-
-        # Plot the closing prices for the most similar period
-        plt.plot(data_similar.index, data_similar['Close'], label='Most Similar Period')
-
-        plt.title(f'{ticker_symbol} Stock Prices')
-        plt.xlabel('Date')
-        plt.ylabel('Close Price')
-        plt.legend()
-        plt.show()
-
-# Select the top similar period for calibration
-top_period = similar_periods[0][0]
-top_data = get_stock_data(ticker_symbol, top_period[0], top_period[1])
-
 # Calibrate indicators
 rsi_window = 14
 sma_window = 20
@@ -146,48 +118,79 @@ bollinger_window = 20
 stoch_window = 14
 init_price = 1000
 
-calibrate_indicators(top_data, rsi_window, sma_window, ema_window,bollinger_window, stoch_window)
+sma_profits = []
+rsi_profits = []
+ema_profits = []
+bollinger_profits = []
+stoch_profits = []
 
-# Evaluate performance with past future periods
-future_start = top_period[1] + pd.DateOffset(days=1)
-future_end = future_start + pd.DateOffset(months=3) - pd.DateOffset(days=1)
-future_data = get_stock_data(ticker_symbol, future_start, future_end)
+sma_final_prices = []
+rsi_final_prices = []
+ema_final_prices = []
+bollinger_final_prices = []
+stoch_final_prices = []
 
-predicted_prices = predict_prices(future_data, sma_window)
-actual_prices = future_data['Close']
+similar_periods = find_similar_periods(ticker_symbol, current_start, current_end, past_start_year, past_end_year, step_months)
+for i, period in enumerate(similar_periods, 1):
+    # Fetch the data for the two periods
+    data_current = get_stock_data(ticker_symbol, current_start, current_end)
+    data_similar = get_stock_data(ticker_symbol, period[0], period[1])
+    # Calibrate indicators
+    calibrate_indicators(data_similar, rsi_window, sma_window, ema_window,bollinger_window, stoch_window)
 
-# Evaluate performance for SMA, EMA, MACD, RSI, Bollinger Bands, Stochastic Oscillator, and ATR
-sma_profit, sma_final_price = calculate_profit(actual_prices, predicted_prices, "SMA", init_price)
-print(f"Profit with calibrated SMA: {sma_profit}")
-print(f"Final price with calibrated SMA: {sma_final_price}")
+    # Define future_start and future_end (3 month)
+    future_start = period[1]
+    future_end = future_start + pd.DateOffset(months=3)
 
+    # Evaluate performance with past future periods
+    future_data = get_stock_data(ticker_symbol, future_start, future_end)
+    calibrate_indicators(future_data, rsi_window, sma_window, ema_window, bollinger_window, stoch_window)
 
-# Add this line before the 'RSI' column is accessed
-future_data['RSI'] = ta.momentum.RSIIndicator(future_data['Close'], rsi_window).rsi()
+    predicted_prices = predict_prices(future_data, sma_window)
+    actual_prices = future_data['Close']
 
-rsi_profit, rsi_final_price = calculate_profit(actual_prices, future_data['RSI'], "RSI", init_price)
-print(f"Profit with calibrated RSI: {rsi_profit}")
-print(f"Final price with calibrated RSI: {rsi_final_price}")
+    # Calculate profit and final price for each indicator
+    sma_profit, sma_final_price = calculate_profit(actual_prices, predicted_prices, "SMA", init_price)
+    rsi_profit, rsi_final_price = calculate_profit(actual_prices, future_data['RSI'], "RSI", init_price)
+    ema_profit, ema_final_price = calculate_profit(actual_prices, future_data['EMA'], "EMA", init_price)
+    bollinger_profit, bollinger_final_price = calculate_profit(actual_prices, future_data['Bollinger'], "Bollinger", init_price)
+    stoch_profit, stoch_final_price = calculate_profit(actual_prices, future_data['Stochastic'], "Stochastic", init_price)
+    # Append profits and final prices to the respective lists
+    sma_profits.append(sma_profit)
+    rsi_profits.append(rsi_profit)
+    ema_profits.append(ema_profit)
+    bollinger_profits.append(bollinger_profit)
+    stoch_profits.append(stoch_profit)
 
-# Add this line before the 'EMA' column is accessed
-future_data['EMA'] = ta.trend.EMAIndicator(future_data['Close'], ema_window).ema_indicator()
+    sma_final_prices.append(sma_final_price)
+    rsi_final_prices.append(rsi_final_price)
+    ema_final_prices.append(ema_final_price)
+    bollinger_final_prices.append(bollinger_final_price)
+    stoch_final_prices.append(stoch_final_price)
 
-ema_profit, ema_final_price = calculate_profit(actual_prices, future_data['EMA'], "EMA", init_price)
-print(f"Profit with calibrated EMA: {ema_profit}")
-print(f"Final price with calibrated EMA: {ema_final_price}")
+# Calculate average profit and final price for each indicator
+average_sma_profit = sum(sma_profits) / len(sma_profits)
+average_rsi_profit = sum(rsi_profits) / len(rsi_profits)
+average_ema_profit = sum(ema_profits) / len(ema_profits)
+average_bollinger_profit = sum(bollinger_profits) / len(bollinger_profits)
+average_stoch_profit = sum(stoch_profits) / len(stoch_profits)
 
-# Add these lines before the 'Bollinger' and 'Stochastic' columns are accessed
-bollinger_indicator = ta.volatility.BollingerBands(future_data['Close'])
-future_data['Bollinger'] = bollinger_indicator.bollinger_mavg()
+average_sma_final_price = sum(sma_final_prices) / len(sma_final_prices)
+average_rsi_final_price = sum(rsi_final_prices) / len(rsi_final_prices)
+average_ema_final_price = sum(ema_final_prices) / len(ema_final_prices)
+average_bollinger_final_price = sum(bollinger_final_prices) / len(bollinger_final_prices)
+average_stoch_final_price = sum(stoch_final_prices) / len(stoch_final_prices)
 
-stoch_indicator = ta.momentum.StochasticOscillator(future_data['High'], future_data['Low'], future_data['Close'])
-future_data['Stochastic'] = stoch_indicator.stoch()
+print(f"Average SMA profit: {average_sma_profit}")
+print(f"Average RSI profit: {average_rsi_profit}")
+print(f"Average EMA profit: {average_ema_profit}")
+print(f"Average Bollinger Bands profit: {average_bollinger_profit}")
+print(f"Average Stochastic Oscillator profit: {average_stoch_profit}")
 
-bollinger_profit, bollinger_final_price = calculate_profit(actual_prices, future_data['Bollinger'], "Bollinger", init_price)
-print(f"Profit with calibrated Bollinger Bands: {bollinger_profit}")
-print(f"Final price with calibrated Bollinger Bands: {bollinger_final_price}")
+print(f"Average SMA final price: {average_sma_final_price}")
+print(f"Average RSI final price: {average_rsi_final_price}")
+print(f"Average EMA final price: {average_ema_final_price}")
+print(f"Average Bollinger Bands final price: {average_bollinger_final_price}")
+print(f"Average Stochastic Oscillator final price: {average_stoch_final_price}")
 
-stoch_profit, stoch_final_price = calculate_profit(actual_prices, future_data['Stochastic'], "Stochastic", init_price)
-print(f"Profit with calibrated Stochastic Oscillator: {stoch_profit}")
-print(f"Final price with calibrated Stochastic Oscillator: {stoch_final_price}")
 
