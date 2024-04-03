@@ -4,6 +4,8 @@ from sklearn.metrics import mean_squared_error
 import ta
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import norm
+
 # Download stock data
 def get_stock_data(ticker, start_date, end_date):
     stock_data = yf.download(ticker, start=start_date, end=end_date)
@@ -60,38 +62,78 @@ def find_similar_periods(ticker, current_start_date, current_end_date, past_star
 
 def calculate_profit(actual_data, predicted_data, indicator, init_price):
     # use plot to show the actual and predicted data
-    # Find the first non-NaN value in predicted_data
     start_index = predicted_data.first_valid_index()
 
     # Synchronize actual_data with predicted_data
-    actual_data = actual_data.loc[start_index:]
-    # Now plot the actual and predicted data
-    # The Y should 5 not 10
+    """ actual_data = actual_data.loc[start_index:]
 
     plt.title(indicator)
     plt.plot(actual_data, label='Actual')
     plt.plot(predicted_data, label='Predicted')
     plt.legend()
-    plt.show()
+    plt.show() """
 
     # Calculate the profit
     profit = 0
     bought = False
-    for i in range(1, len(actual_data)):
-        if predicted_data.iloc[i] > actual_data.iloc[i] and not bought:
-            bought = True
-            profit -= actual_data.iloc[i]
+    money_left = init_price
 
-        elif predicted_data.iloc[i] < actual_data.iloc[i] and bought:
-            bought = False
-            profit += actual_data.iloc[-1]
-    if bought:
-        profit += actual_data.iloc[-1]
-    
+    # Moving Average
+    short_term_ma = predicted_data.rolling(window=5).mean()
+    long_term_ma = predicted_data.rolling(window=20).mean()
+
+    # RSI
+    delta = predicted_data.diff()
+    up, down = delta.copy(), delta.copy()
+    up[up < 0] = 0
+    down[down > 0] = 0
+    average_gain = up.rolling(window=14).mean()
+    average_loss = abs(down.rolling(window=14).mean())
+    rs = average_gain / average_loss
+    rsi = 100 - (100 / (1 + rs))
+
+    # Bollinger Bands
+    sma = predicted_data.rolling(window=20).mean()
+    std = predicted_data.rolling(window=20).std()
+    upper_bb = sma + (2 * std)
+    lower_bb = sma - (2 * std)
+
+    # Stochastic Oscillator
+    low_min  = predicted_data.rolling( window = 14 ).min()
+    high_max = predicted_data.rolling( window = 14 ).max()
+    k = 100 * (predicted_data - low_min) / (high_max - low_min)
+    d = k.rolling(window = 3).mean()
+
+    for i in range(1, len(actual_data)):
+        # Buy signal
+        if (short_term_ma.iloc[i] > long_term_ma.iloc[i] or rsi.iloc[i] < 30 or predicted_data.iloc[i] < lower_bb.iloc[i] or k.iloc[i] < 20) and money_left >= actual_data.iloc[i]:
+            stocks_to_buy = money_left // actual_data.iloc[i]  # Calculate how many stocks to buy
+            bought += stocks_to_buy  # Buy the stocks
+            money_spent = stocks_to_buy * actual_data.iloc[i]
+            profit -= money_spent
+            money_left -= money_spent  # Deduct the money spent from the money left
+        # Sell signal
+        elif (short_term_ma.iloc[i] < long_term_ma.iloc[i] or rsi.iloc[i] > 70 or predicted_data.iloc[i] > upper_bb.iloc[i] or k.iloc[i] > 80) and bought > 0:
+            money_earned = bought * actual_data.iloc[i]  # Sell all the stocks
+            profit += money_earned
+            money_left += money_earned  # Add the money earned to the money left
+            bought = 0  # Reset the number of stocks bought
+    if bought > 0:
+        money_earned = bought * actual_data.iloc[-1]  # Sell all the stocks
+        profit += money_earned
+        money_left += money_earned  # Add the money earned to the money left
+
     # Calculate the final price
     final_price = init_price + profit
 
-    return profit, final_price
+    # Calculate return
+    return_rate = profit / init_price
+
+    # Calculate Sharpe ratio
+    excess_returns = predicted_data.pct_change().dropna()
+    sharpe_ratio = np.mean(excess_returns) / np.std(excess_returns)
+
+    return profit, final_price, return_rate, sharpe_ratio
 
 
 
@@ -130,6 +172,22 @@ ema_final_prices = []
 bollinger_final_prices = []
 stoch_final_prices = []
 
+# Initialize lists for return rates
+sma_return_rates = []
+rsi_return_rates = []
+ema_return_rates = []
+bollinger_return_rates = []
+stoch_return_rates = []
+
+# Initialize list for sharpe ratios
+sma_sharpe_ratios = []
+rsi_sharpe_ratios = []
+ema_sharpe_ratios = []
+bollinger_sharpe_ratios = []
+stoch_sharpe_ratios = []
+
+
+
 similar_periods = find_similar_periods(ticker_symbol, current_start, current_end, past_start_year, past_end_year, step_months)
 for i, period in enumerate(similar_periods, 1):
     # Fetch the data for the two periods
@@ -149,12 +207,14 @@ for i, period in enumerate(similar_periods, 1):
     predicted_prices = predict_prices(future_data, sma_window)
     actual_prices = future_data['Close']
 
-    # Calculate profit and final price for each indicator
-    sma_profit, sma_final_price = calculate_profit(actual_prices, predicted_prices, "SMA", init_price)
-    rsi_profit, rsi_final_price = calculate_profit(actual_prices, future_data['RSI'], "RSI", init_price)
-    ema_profit, ema_final_price = calculate_profit(actual_prices, future_data['EMA'], "EMA", init_price)
-    bollinger_profit, bollinger_final_price = calculate_profit(actual_prices, future_data['Bollinger'], "Bollinger", init_price)
-    stoch_profit, stoch_final_price = calculate_profit(actual_prices, future_data['Stochastic'], "Stochastic", init_price)
+    #    return profit,return_rate, sharpe_ratio, final_price
+    
+    # Inside the loop
+    sma_profit, sma_final_price,sma_return_rate,sma_sharpe_ratio = calculate_profit(actual_prices, predicted_prices, "SMA", init_price)
+    rsi_profit, rsi_final_price, rsi_return_rate,rsi_sharpe_ratio = calculate_profit(actual_prices, future_data['RSI'], "RSI", init_price)
+    ema_profit, ema_final_price, ema_return_rate, ema_sharpe_ratio = calculate_profit(actual_prices, future_data['EMA'], "EMA", init_price)
+    bollinger_profit, bollinger_final_price, bollinger_return_rate, bollinger_sharpe_ratio = calculate_profit(actual_prices, future_data['Bollinger'], "Bollinger", init_price)
+    stoch_profit, stoch_final_price, stoch_return_rate, stoch_sharpe_ratio = calculate_profit(actual_prices, future_data['Stochastic'], "Stochastic", init_price)
     # Append profits and final prices to the respective lists
     sma_profits.append(sma_profit)
     rsi_profits.append(rsi_profit)
@@ -167,6 +227,20 @@ for i, period in enumerate(similar_periods, 1):
     ema_final_prices.append(ema_final_price)
     bollinger_final_prices.append(bollinger_final_price)
     stoch_final_prices.append(stoch_final_price)
+
+    # Append return rates to the respective lists
+    sma_return_rates.append(sma_return_rate)
+    rsi_return_rates.append(rsi_return_rate)
+    ema_return_rates.append(ema_return_rate)
+    bollinger_return_rates.append(bollinger_return_rate)
+    stoch_return_rates.append(stoch_return_rate)
+
+    sma_sharpe_ratios.append(sma_sharpe_ratio)
+    rsi_sharpe_ratios.append(rsi_sharpe_ratio)
+    ema_sharpe_ratios.append(ema_sharpe_ratio)
+    bollinger_sharpe_ratios.append(bollinger_sharpe_ratio)
+    stoch_sharpe_ratios.append(stoch_sharpe_ratio)
+
 
 # Calculate average profit and final price for each indicator
 average_sma_profit = sum(sma_profits) / len(sma_profits)
@@ -181,16 +255,38 @@ average_ema_final_price = sum(ema_final_prices) / len(ema_final_prices)
 average_bollinger_final_price = sum(bollinger_final_prices) / len(bollinger_final_prices)
 average_stoch_final_price = sum(stoch_final_prices) / len(stoch_final_prices)
 
-print(f"Average SMA profit: {average_sma_profit}")
-print(f"Average RSI profit: {average_rsi_profit}")
-print(f"Average EMA profit: {average_ema_profit}")
-print(f"Average Bollinger Bands profit: {average_bollinger_profit}")
-print(f"Average Stochastic Oscillator profit: {average_stoch_profit}")
+average_sma_return_rate = sum(sma_return_rates) / len(sma_return_rates)
+average_rsi_return_rate = sum(rsi_return_rates) / len(rsi_return_rates)
+average_ema_return_rate = sum(ema_return_rates) / len(ema_return_rates)
+average_bollinger_return_rate = sum(bollinger_return_rates) / len(bollinger_return_rates)
+average_stoch_return_rate = sum(stoch_return_rates) / len(stoch_return_rates)
 
-print(f"Average SMA final price: {average_sma_final_price}")
-print(f"Average RSI final price: {average_rsi_final_price}")
-print(f"Average EMA final price: {average_ema_final_price}")
-print(f"Average Bollinger Bands final price: {average_bollinger_final_price}")
-print(f"Average Stochastic Oscillator final price: {average_stoch_final_price}")
+average_sma_sharpe_ratio = np.nanmean(sma_sharpe_ratios)
+average_rsi_sharpe_ratio = np.nanmean(rsi_sharpe_ratios)
+average_ema_sharpe_ratio = np.nanmean(ema_sharpe_ratios)
+average_bollinger_sharpe_ratio = np.nanmean(bollinger_sharpe_ratios)
+average_stoch_sharpe_ratio = np.nanmean(stoch_sharpe_ratios)
 
+print(f'{"Average SMA profit":50s}| {average_sma_profit:10.2f}')
+print(f'{"Average RSI profit":50s}| {average_rsi_profit:10.2f}')
+print(f'{"Average EMA profit":50s}| {average_ema_profit:10.2f}')
+print(f'{"Average Bollinger Bands profit":50s}| {average_bollinger_profit:10.2f}')
+print(f'{"Average Stochastic Oscillator profit":50s}| {average_stoch_profit:10.2f}\n')
 
+print(f'{"Average SMA final price":50s}| {average_sma_final_price:10.2f}')
+print(f'{"Average RSI final price":50s}| {average_rsi_final_price:10.2f}')
+print(f'{"Average EMA final price":50s}| {average_ema_final_price:10.2f}')
+print(f'{"Average Bollinger Bands final price":50s}| {average_bollinger_final_price:10.2f}')
+print(f'{"Average Stochastic Oscillator final price":50s}| {average_stoch_final_price:10.2f}\n')
+
+print(f'{"Average SMA return rate":50s}| {average_sma_return_rate:10.5f}')
+print(f'{"Average RSI return rate":50s}| {average_rsi_return_rate:10.5f}')
+print(f'{"Average EMA return rate":50s}| {average_ema_return_rate:10.5f}')
+print(f'{"Average Bollinger Bands return rate":50s}| {average_bollinger_return_rate:10.5f}')
+print(f'{"Average Stochastic Oscillator return rate":50s}| {average_stoch_return_rate:10.5f}\n')
+
+print(f'{"Average SMA Sharpe ratio":50s}| {average_sma_sharpe_ratio:10.2f}')
+print(f'{"Average RSI Sharpe ratio":50s}| {average_rsi_sharpe_ratio:10.2f}')
+print(f'{"Average EMA Sharpe ratio":50s}| {average_ema_sharpe_ratio:10.2f}')
+print(f'{"Average Bollinger Bands Sharpe ratio":50s}| {average_bollinger_sharpe_ratio:10.2f}')
+print(f'{"Average Stochastic Oscillator Sharpe ratio":50s}| {average_stoch_sharpe_ratio:10.2f}')
