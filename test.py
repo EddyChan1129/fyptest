@@ -79,7 +79,7 @@ def calculate_profit(actual_data, predicted_data, indicator, init_price):
         plt.plot(actual_data, label='Actual')
         plt.plot(predicted_data, label='Predicted')
         plt.legend()
-        plt.show()
+        #plt.show()
         has_been_called = True
 
     # Calculate the profit
@@ -374,7 +374,7 @@ def analyze_stock(ticker_symbol):
         plt.ylabel('Price')
         plt.legend(loc='upper left')
         plt.savefig('./templates/predict.png')  # Save the plot as a PNG file
-        plt.show()
+        #plt.show()
 
     results = {
         "Average SMA profit": average_sma_profit,
