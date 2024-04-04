@@ -5,7 +5,7 @@ import ta
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-import datetime
+from datetime import datetime, timedelta
 
 # Download stock data
 def get_stock_data(ticker, start_date, end_date):
@@ -157,9 +157,9 @@ ticker_symbol = input("Enter the ticker symbol: ")
 # The current_start and current_end should be user input
 current_start = pd.Timestamp(year=2023, month=12, day=1)
 
-endYear = datetime.datetime.now().year
-endMonth = datetime.datetime.now().month
-endDay = datetime.datetime.now().day
+endYear = datetime.now().year
+endMonth = datetime.now().month
+endDay = datetime.now().day
 
 current_end = pd.Timestamp(year=endYear, month=endMonth, day=endDay)
 past_start_year = 2014
@@ -306,3 +306,74 @@ print(f'{"Average RSI Sharpe ratio":50s}| {average_rsi_sharpe_ratio:10.2f}')
 print(f'{"Average EMA Sharpe ratio":50s}| {average_ema_sharpe_ratio:10.2f}')
 print(f'{"Average Bollinger Bands Sharpe ratio":50s}| {average_bollinger_sharpe_ratio:10.2f}')
 print(f'{"Average Stochastic Oscillator Sharpe ratio":50s}| {average_stoch_sharpe_ratio:10.2f}')
+
+# Python
+profits = [
+    ("SMA", average_sma_profit),
+    ("RSI", average_rsi_profit),
+    ("EMA", average_ema_profit),
+    ("Bollinger", average_bollinger_profit),
+    ("Stochastic", average_stoch_profit)
+]
+
+# Sort the list in descending order based on the profit
+profits.sort(key=lambda x: x[1], reverse=True)
+
+# The first element in the sorted list is the best indicator
+best_indicator = profits[0]
+
+
+print(f"The best indicator is {best_indicator[0]} with a profit of {best_indicator[1]}")
+
+if best_indicator[1] > 0:
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=90)  # Get data for the past year
+    data = get_stock_data(ticker_symbol, start_date, end_date)
+
+    rsi_window = 14
+    sma_window = 20
+    ema_window = 12
+    bollinger_window = 20
+    stoch_window = 14
+    calibrate_indicators(data, rsi_window, sma_window, ema_window, bollinger_window, stoch_window)
+
+    if best_indicator[0] == 'Stochastic':
+        buy_signals = data['Stochastic'] < 20
+        sell_signals = data['Stochastic'] > 80
+    elif best_indicator[0] == 'SMA':
+        buy_signals = data['SMA'] < data['Close']  # Adjust these conditions as needed
+        sell_signals = data['SMA'] > data['Close']
+    elif best_indicator[0] == 'RSI':
+        buy_signals = data['RSI'] < 30
+        sell_signals = data['RSI'] > 70
+    elif best_indicator[0] == 'EMA':
+        buy_signals = data['EMA'] < data['Close']  # Adjust these conditions as needed
+        sell_signals = data['EMA'] > data['Close']
+    elif best_indicator[0] == 'Bollinger':
+        buy_signals = data['Close'] < data['Bollinger']  # Adjust these conditions as needed
+        sell_signals = data['Close'] > data['Bollinger']
+
+    buy_prices = data['Close'].where(buy_signals, None)
+    sell_prices = data['Close'].where(sell_signals, None)
+
+    plt.figure(figsize=(12,5))
+    plt.plot(data['Close'], label='Close Price', color='blue', alpha=0.35)
+    plt.scatter(data.index, buy_prices, color='green', label='Buy Signal', marker='^', alpha=1)
+    plt.scatter(data.index, sell_prices, color='red', label='Sell Signal', marker='v', alpha=1)
+
+    # Check if today is a buy or sell signal
+    if buy_signals.iloc[-1]:
+        plt.scatter(data.index[-1], data['Close'].iloc[-1], color='blue', label='Today: Buy Signal', marker='o', alpha=1)
+        today_signal = 'Buy'
+    elif sell_signals.iloc[-1]:
+        plt.scatter(data.index[-1], data['Close'].iloc[-1], color='purple', label='Today: Sell Signal', marker='o', alpha=1)
+        today_signal = 'Sell'
+    else:
+        today_signal = 'Hold'
+
+    plt.title(f'Stock Price with Buy & Sell Signals\nToday ({end_date.strftime("%Y-%m-%d")}): {today_signal} Signal')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend(loc='upper left')
+    plt.savefig('predict.png')  # Save the plot as a PNG file
+    plt.show()
