@@ -161,7 +161,7 @@ def analyze_stock(ticker_symbol):
     current_end = pd.Timestamp(year=endYear, month=endMonth, day=endDay)
     past_start_year = 2014
     past_end_year = 2024
-    step_months = 2
+    step_months = 3
 
     # Calibrate indicators
     rsi_window = 14
@@ -339,14 +339,30 @@ def analyze_stock(ticker_symbol):
             buy_signals = data['Stochastic'] < 20
             sell_signals = data['Stochastic'] > 80
         elif best_indicator[0] == 'SMA':
-            buy_signals = data['SMA'] < data['Close']  # Adjust these conditions as needed
-            sell_signals = data['SMA'] > data['Close']
+            short_window = 20  # Define  short-term window size
+            long_window = 50  # Define  long-term window size
+
+            # Calculate short-term and long-term moving averages
+            data['Short_SMA'] = data['Close'].rolling(window=short_window).mean()
+            data['Long_SMA'] = data['Close'].rolling(window=long_window).mean()
+
+            # Generate signals based on crossover strategy
+            buy_signals = data['Short_SMA'] > data['Long_SMA']
+            sell_signals = data['Short_SMA'] < data['Long_SMA']
         elif best_indicator[0] == 'RSI':
             buy_signals = data['RSI'] < 30
             sell_signals = data['RSI'] > 70
         elif best_indicator[0] == 'EMA':
-            buy_signals = data['EMA'] < data['Close']  # Adjust these conditions as needed
-            sell_signals = data['EMA'] > data['Close']
+            short_window = 5  # Define  short-term window size
+            long_window = 30  # Define  long-term window size
+
+            # Calculate short-term and long-term EMAs
+            data['Short_EMA'] = data['Close'].ewm(span=short_window, adjust=False).mean()
+            data['Long_EMA'] = data['Close'].ewm(span=long_window, adjust=False).mean()
+
+            # Generate signals based on crossover strategy
+            buy_signals = data['Short_EMA'] > data['Long_EMA']
+            sell_signals = data['Short_EMA'] < data['Long_EMA']
         elif best_indicator[0] == 'Bollinger':
             buy_signals = data['Close'] < data['Bollinger']  # Adjust these conditions as needed
             sell_signals = data['Close'] > data['Bollinger']
@@ -354,8 +370,13 @@ def analyze_stock(ticker_symbol):
         buy_prices = data['Close'].where(buy_signals, None)
         sell_prices = data['Close'].where(sell_signals, None)
 
-        plt.figure(figsize=(12,5))
+        plt.figure(figsize=(12,7))
         plt.plot(data['Close'], label='Close Price', color='blue', alpha=0.35)
+        if 'Short_EMA' in data.columns and data['Short_EMA'].notnull().all():
+            plt.plot(data['Short_EMA'], label='Short EMA', color='green', alpha=0.35)
+        if 'Long_EMA' in data.columns and data['Long_EMA'].notnull().all():
+            plt.plot(data['Long_EMA'], label='Long EMA', color='red', alpha=0.35)
+    
         plt.scatter(data.index, buy_prices, color='green', label='Buy Signal', marker='^', alpha=1)
         plt.scatter(data.index, sell_prices, color='red', label='Sell Signal', marker='v', alpha=1)
 
@@ -369,7 +390,7 @@ def analyze_stock(ticker_symbol):
         else:
             today_signal = 'Hold'
 
-        plt.title(f'Stock Price with Buy & Sell Signals\nToday ({end_date.strftime("%Y-%m-%d")}): {today_signal} Signal')
+        plt.title(f'{best_indicator[0]} is best indicator\n{ticker_symbol} Stock Price with Buy & Sell Signals\nToday ({end_date.strftime("%Y-%m-%d")}): {today_signal} Signal')
         plt.xlabel('Date')
         plt.ylabel('Price')
         plt.legend(loc='upper left')
