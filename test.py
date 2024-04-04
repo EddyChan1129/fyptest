@@ -373,7 +373,7 @@ def analyze_stock(ticker_symbol):
         plt.xlabel('Date')
         plt.ylabel('Price')
         plt.legend(loc='upper left')
-        plt.savefig('./templates/predict.png')  # Save the plot as a PNG file
+        plt.savefig('./static/predict.png')  # Save the plot as a PNG file
         #plt.show()
 
     results = {

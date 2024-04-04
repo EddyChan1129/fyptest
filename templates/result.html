@@ -8,9 +8,12 @@
 <body>
     <h1>Stock Analysis Results</h1>
     {% for key, value in results.items() %}
+    {% if key == 'Image' %}
+    <img src="{{ url_for('static', filename=value) }}" alt="Predicted stock performance">
+    {% else %}
     <p>{{ key }}: {{ value }}</p>
+    {% endif %}
     {% endfor %}
-    <img src="./predict.png" alt="werwere">
 </body>
 
 </html>
