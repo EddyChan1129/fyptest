@@ -5,6 +5,7 @@ import ta
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
+import datetime
 
 # Download stock data
 def get_stock_data(ticker, start_date, end_date):
@@ -43,7 +44,10 @@ def find_similar_periods(ticker, current_start_date, current_end_date, past_star
     for year in range(past_start_year, past_end_year + 1):
         for month in range(1, 13, step_months):
             start_date = pd.Timestamp(year=year, month=month, day=1)
-            end_date = start_date + pd.DateOffset(months=3)  # Do not subtract 1 day
+            end_date = start_date + pd.DateOffset(months=step_months)  
+
+
+            print(f"Checking period {start_date} to {end_date}")
             
             if end_date > current_end_date:
                 continue
@@ -59,19 +63,24 @@ def find_similar_periods(ticker, current_start_date, current_end_date, past_star
     
     return [x[1][1] for x in ranked_periods[:top_n]]
 
+has_been_called = False
 
 def calculate_profit(actual_data, predicted_data, indicator, init_price):
     # use plot to show the actual and predicted data
     start_index = predicted_data.first_valid_index()
 
     # Synchronize actual_data with predicted_data
-    """ actual_data = actual_data.loc[start_index:]
+    actual_data = actual_data.loc[start_index:]
 
-    plt.title(indicator)
-    plt.plot(actual_data, label='Actual')
-    plt.plot(predicted_data, label='Predicted')
-    plt.legend()
-    plt.show() """
+    global has_been_called
+
+    if not has_been_called:
+        plt.title(indicator)
+        plt.plot(actual_data, label='Actual')
+        plt.plot(predicted_data, label='Predicted')
+        plt.legend()
+        plt.show()
+        has_been_called = True
 
     # Calculate the profit
     profit = 0
@@ -147,10 +156,15 @@ def predict_prices(data, sma_window):
 ticker_symbol = input("Enter the ticker symbol: ")
 # The current_start and current_end should be user input
 current_start = pd.Timestamp(year=2023, month=12, day=1)
-current_end = pd.Timestamp(year=2024, month=3, day=21)
+
+endYear = datetime.datetime.now().year
+endMonth = datetime.datetime.now().month
+endDay = datetime.datetime.now().day
+
+current_end = pd.Timestamp(year=endYear, month=endMonth, day=endDay)
 past_start_year = 2014
 past_end_year = 2024
-step_months = 3
+step_months = 4
 
 # Calibrate indicators
 rsi_window = 14
@@ -189,6 +203,7 @@ stoch_sharpe_ratios = []
 
 
 similar_periods = find_similar_periods(ticker_symbol, current_start, current_end, past_start_year, past_end_year, step_months)
+print(f"Similar periods: {similar_periods}\n")
 for i, period in enumerate(similar_periods, 1):
     # Fetch the data for the two periods
     data_current = get_stock_data(ticker_symbol, current_start, current_end)
@@ -208,6 +223,7 @@ for i, period in enumerate(similar_periods, 1):
     actual_prices = future_data['Close']
 
     #    return profit,return_rate, sharpe_ratio, final_price
+
     
     # Inside the loop
     sma_profit, sma_final_price,sma_return_rate,sma_sharpe_ratio = calculate_profit(actual_prices, predicted_prices, "SMA", init_price)
