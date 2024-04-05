@@ -5,15 +5,46 @@
     <title>Stock Analysis Results</title>
 </head>
 
+<style>
+    body {
+        background-color: #f5f5f5;
+    }
+
+    div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 30px;
+    }
+
+    h1{
+        letter-spacing: 5px;
+        margin-bottom: 30px;
+    }
+
+
+    /* <p><b>{{ key }}</b> <span>{{ value }}</span></p> */
+    /* i want the <b> display in left <span> display in right */
+    p {
+        display: flex;
+        justify-content: space-between;
+        width: 500px;
+    }
+
+</style>
+
 <body>
-    <h1>Stock Analysis Results</h1>
-    {% for key, value in results.items() %}
-    {% if key == 'Image' %}
-    <img src="{{ url_for('static', filename=value) }}" alt="Predicted stock performance">
-    {% else %}
-    <p>{{ key }}: {{ value }}</p>
-    {% endif %}
-    {% endfor %}
+    <div>
+        <h1>Stock Analysis Results</h1>
+        {% for key, value in results.items() %}
+        {% if key == 'Image' %}
+        <img src="{{ url_for('static', filename=value) }}" alt="Predicted stock performance" width="800px">
+        {% else %}
+        <p><b>{{ key }}</b> <span>{{ value }}</span></p>
+        {% endif %}
+        {% endfor %}
+    </div>
+
 </body>
 
 </html>

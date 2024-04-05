@@ -73,7 +73,7 @@ def calculate_profit(actual_data, predicted_data, indicator, init_price):
     # Synchronize actual_data with predicted_data
     actual_data = actual_data.loc[start_index:]
 
-    global has_been_called
+    """global has_been_called
 
     if not has_been_called:
         plt.title(indicator)
@@ -82,11 +82,12 @@ def calculate_profit(actual_data, predicted_data, indicator, init_price):
         plt.legend()
         #plt.show()
         has_been_called = True
-
+    """
     # Calculate the profit
     profit = 0
     bought = False
-    money_left = init_price
+    #int init_price
+    money_left = int(init_price)
 
     # Moving Average
     short_term_ma = predicted_data.rolling(window=5).mean()
@@ -154,7 +155,7 @@ def predict_prices(data, sma_window):
     predicted_prices = data['SMA']  # Use the single-period SMA directly
     return predicted_prices
 
-def analyze_stock(ticker_symbol):
+def analyze_stock(ticker_symbol,init_price):
     endYear = datetime.now().year
     endMonth = datetime.now().month
     endDay = datetime.now().day
@@ -172,7 +173,6 @@ def analyze_stock(ticker_symbol):
     ema_window = 12
     bollinger_window = 20
     stoch_window = 14
-    init_price = 1000
 
     sma_profits = []
     rsi_profits = []
@@ -225,7 +225,6 @@ def analyze_stock(ticker_symbol):
 
         # Define future_start and future_end (3 month)
         future_start = period[1]
-        print("step_months", step_months)
         future_end = future_start + pd.DateOffset(months=step_months)
 
         # Evaluate performance with past future periods
@@ -354,8 +353,8 @@ def analyze_stock(ticker_symbol):
             buy_signals = data['Stochastic'] < 20
             sell_signals = data['Stochastic'] > 80
         elif best_indicator[0] == 'SMA':
-            short_window = 20  # Define  short-term window size
-            long_window = 50  # Define  long-term window size
+            short_window = 5  # Define  short-term window size
+            long_window = 20  # Define  long-term window size
 
             # Calculate short-term and long-term moving averages
             data['Short_SMA'] = data['Close'].rolling(window=short_window).mean()
@@ -413,59 +412,53 @@ def analyze_stock(ticker_symbol):
         plt.savefig('./static/predict.png')  # Save the plot as a PNG file
         #plt.show()
 
-        results = {
-            "Average SMA profit": average_sma_profit,
-            "Average RSI profit": average_rsi_profit,
-            "Average EMA profit": average_ema_profit,
-            "Average Bollinger Bands profit": average_bollinger_profit,
-            "Average Stochastic Oscillator profit": average_stoch_profit,
-
-            "Average SMA final price": average_sma_final_price,
-            "Average RSI final price": average_rsi_final_price,
-            "Average EMA final price": average_ema_final_price,
-            "Average Bollinger Bands final price": average_bollinger_final_price,
-            "Average Stochastic Oscillator final price": average_stoch_final_price,
-
-            "Average SMA return rate": average_sma_return_rate,
-            "Average RSI return rate": average_rsi_return_rate,
-            "Average EMA return rate": average_ema_return_rate,
-            "Average Bollinger Bands return rate": average_bollinger_return_rate,
-            "Average Stochastic Oscillator return rate": average_stoch_return_rate,
-
-            "Average SMA Sharpe ratio": average_sma_sharpe_ratio,
-            "Average RSI Sharpe ratio": average_rsi_sharpe_ratio,
-            "Average EMA Sharpe ratio": average_ema_sharpe_ratio,
-            "Average Bollinger Bands Sharpe ratio": average_bollinger_sharpe_ratio,
-            "Average Stochastic Oscillator Sharpe ratio": average_stoch_sharpe_ratio,
-
-            "Image": "predict.png"  # path to the image
-        }
-
+        
+        if  best_indicator[0] == 'SMA':
+            results = {
+                "Average SMA profit": average_sma_profit,
+                "Average SMA final price": average_sma_final_price,
+                "Average SMA return rate": average_sma_return_rate,
+                "Average SMA Sharpe ratio": average_sma_sharpe_ratio,
+                "Image": "predict.png"  # path to the image
+            }
+        elif best_indicator[0] == 'RSI':
+            results = {
+                "Average RSI profit": average_rsi_profit,
+                "Average RSI final price": average_rsi_final_price,
+                "Average RSI return rate": average_rsi_return_rate,
+                "Average RSI Sharpe ratio": average_rsi_sharpe_ratio,
+                "Image": "predict.png"  # path to the image
+            }
+        elif best_indicator[0] == 'EMA':
+            results = {
+                "Average EMA profit": average_ema_profit,
+                "Average EMA final price": average_ema_final_price,
+                "Average EMA return rate": average_ema_return_rate,
+                "Average EMA Sharpe ratio": average_ema_sharpe_ratio,
+                "Image": "predict.png"  # path to the image
+            }
+        elif best_indicator[0] == 'Bollinger':
+            results = {
+                "Average Bollinger Bands profit": average_bollinger_profit,
+                "Average Bollinger Bands final price": average_bollinger_final_price,
+                "Average Bollinger Bands return rate": average_bollinger_return_rate,
+                "Average Bollinger Bands Sharpe ratio": average_bollinger_sharpe_ratio,
+                "Image": "predict.png"  # path to the image
+            }
+        elif best_indicator[0] == 'Stochastic':
+            results = {
+                "Average Stochastic Oscillator profit": average_stoch_profit,
+                "Average Stochastic Oscillator final price": average_stoch_final_price,
+                "Average Stochastic Oscillator return rate": average_stoch_return_rate,
+                "Average Stochastic Oscillator Sharpe ratio": average_stoch_sharpe_ratio,
+                "Image": "predict.png"  # path to the image
+            }
+        
+        return results
     else:
         results = {
-            "Average SMA profit": average_sma_profit,
-            "Average RSI profit": average_rsi_profit,
-            "Average EMA profit": average_ema_profit,
-            "Average Bollinger Bands profit": average_bollinger_profit,
-            "Average Stochastic Oscillator profit": average_stoch_profit,
-
-            "Average SMA final price": average_sma_final_price,
-            "Average RSI final price": average_rsi_final_price,
-            "Average EMA final price": average_ema_final_price,
-            "Average Bollinger Bands final price": average_bollinger_final_price,
-            "Average Stochastic Oscillator final price": average_stoch_final_price,
-
-            "Average SMA return rate": average_sma_return_rate,
-            "Average RSI return rate": average_rsi_return_rate,
-            "Average EMA return rate": average_ema_return_rate,
-            "Average Bollinger Bands return rate": average_bollinger_return_rate,
-            "Average Stochastic Oscillator return rate": average_stoch_return_rate,
-
-            "Average SMA Sharpe ratio": average_sma_sharpe_ratio,
-            "Average RSI Sharpe ratio": average_rsi_sharpe_ratio,
-            "Average EMA Sharpe ratio": average_ema_sharpe_ratio,
-            "Average Bollinger Bands Sharpe ratio": average_bollinger_sharpe_ratio,
-            "Average Stochastic Oscillator Sharpe ratio": average_stoch_sharpe_ratio,
+            "No": "Suitable indicator found",
+            
         }
-
-    return results
+        
+        return results
