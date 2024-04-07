@@ -380,23 +380,23 @@ def analyze_stock(ticker_symbol,init_price):
 
  
     # Calculate average profit and final price for each indicator
-    average_sma_profit = sum(sma_profits) / len(sma_profits)
-    average_rsi_profit = sum(rsi_profits) / len(rsi_profits)
-    average_ema_profit = sum(ema_profits) / len(ema_profits)
-    average_bollinger_profit = sum(bollinger_profits) / len(bollinger_profits)
-    average_stoch_profit = sum(stoch_profits) / len(stoch_profits)
+    average_sma_profit = sum(sma_profits) / len(sma_profits) if sma_profits else 0
+    average_rsi_profit = sum(rsi_profits) / len(rsi_profits) if rsi_profits else 0
+    average_ema_profit = sum(ema_profits) / len(ema_profits) if ema_profits else 0
+    average_bollinger_profit = sum(bollinger_profits) / len(bollinger_profits) if bollinger_profits else 0
+    average_stoch_profit = sum(stoch_profits) / len(stoch_profits) if stoch_profits else 0
 
-    average_sma_final_price = sum(sma_final_prices) / len(sma_final_prices)
-    average_rsi_final_price = sum(rsi_final_prices) / len(rsi_final_prices)
-    average_ema_final_price = sum(ema_final_prices) / len(ema_final_prices)
-    average_bollinger_final_price = sum(bollinger_final_prices) / len(bollinger_final_prices)
-    average_stoch_final_price = sum(stoch_final_prices) / len(stoch_final_prices)
+    average_sma_final_price = sum(sma_final_prices) / len(sma_final_prices) if sma_final_prices else 0
+    average_rsi_final_price = sum(rsi_final_prices) / len(rsi_final_prices) if rsi_final_prices else 0
+    average_ema_final_price = sum(ema_final_prices) / len(ema_final_prices) if ema_final_prices else 0
+    average_bollinger_final_price = sum(bollinger_final_prices) / len(bollinger_final_prices)   if bollinger_final_prices else 0
+    average_stoch_final_price = sum(stoch_final_prices) / len(stoch_final_prices) if stoch_final_prices else 0
 
-    average_sma_return_rate = sum(sma_return_rates) / len(sma_return_rates)
-    average_rsi_return_rate = sum(rsi_return_rates) / len(rsi_return_rates)
-    average_ema_return_rate = sum(ema_return_rates) / len(ema_return_rates)
-    average_bollinger_return_rate = sum(bollinger_return_rates) / len(bollinger_return_rates)
-    average_stoch_return_rate = sum(stoch_return_rates) / len(stoch_return_rates)
+    average_sma_return_rate = sum(sma_return_rates) / len(sma_return_rates) if sma_return_rates else 0
+    average_rsi_return_rate = sum(rsi_return_rates) / len(rsi_return_rates) if rsi_return_rates else 0
+    average_ema_return_rate = sum(ema_return_rates) / len(ema_return_rates) if ema_return_rates else 0
+    average_bollinger_return_rate = sum(bollinger_return_rates) / len(bollinger_return_rates) if bollinger_return_rates else 0
+    average_stoch_return_rate = sum(stoch_return_rates) / len(stoch_return_rates) if stoch_return_rates else 0
 
     average_sma_sharpe_ratio = np.nanmean(sma_sharpe_ratios)
     average_rsi_sharpe_ratio = np.nanmean(rsi_sharpe_ratios)
