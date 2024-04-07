@@ -155,6 +155,115 @@ def predict_prices(data, sma_window):
     predicted_prices = data['SMA']  # Use the single-period SMA directly
     return predicted_prices
 
+def calculate_profit_with_signals(prices, buy_signals, sell_signals, initial_cash):
+    cash = initial_cash
+    stock = 0
+    buy_price = 0
+
+    for i in range(len(prices)):
+        # If we have a buy signal and we don't own the stock yet, we buy
+        if buy_signals[i] and stock == 0:
+            stock = cash / prices[i]
+            cash = 0
+            buy_price = prices[i]
+
+        # If we have a sell signal and we own the stock, we sell
+        elif sell_signals[i] and stock > 0:
+            cash = stock * prices[i]
+            stock = 0
+
+    # If we own the stock at the end of the period, we sell it
+    if stock > 0:
+        cash = stock * prices.iloc[-1]
+
+    # The profit is the final amount of cash minus the initial amount
+    profit = cash - initial_cash
+    return profit
+
+def calibrate_rsi(data, rsi_window):
+    data['RSI'] = ta.momentum.RSIIndicator(data['Close'], rsi_window).rsi()
+    return data
+
+def backtest_rsi(ticker_symbol):
+    # Get the current date
+    current_date = datetime.now()
+
+    # Calculate the start date for 3 months ago
+    start_date = current_date - timedelta(days=90)
+
+    # Get the stock data for the last 3 months
+    stock_data = get_stock_data(ticker_symbol, start_date, current_date)
+
+    # Calibrate the RSI indicator
+    stock_data = calibrate_rsi(stock_data, rsi_window=14)
+
+    # Generate buy and sell signals
+    buy_signals = stock_data['RSI'] < 30
+    sell_signals = stock_data['RSI'] > 70
+
+    # Calculate the profit
+    profit = calculate_profit_with_signals(stock_data['Close'], buy_signals, sell_signals, 1000)
+
+    return profit
+
+def calibrate_sma(data, sma_window):
+    data['SMA'] = ta.trend.sma_indicator(data['Close'], sma_window)
+    return data
+
+def backtest_sma(ticker_symbol):
+    start_date = datetime.now() - timedelta(days=90)
+    current_date = datetime.now()
+    stock_data = get_stock_data(ticker_symbol, start_date, current_date)
+    stock_data = calibrate_sma(stock_data, sma_window=20)
+    buy_signals = stock_data['SMA'] < stock_data['Close']
+    sell_signals = stock_data['SMA'] > stock_data['Close']
+    profit = calculate_profit_with_signals(stock_data['Close'], buy_signals, sell_signals, 1000)
+    return profit
+
+def calibrate_ema(data, ema_window):
+    data['EMA'] = ta.trend.EMAIndicator(data['Close'], ema_window).ema_indicator()
+    return data
+
+def backtest_ema(ticker_symbol):
+    start_date = datetime.now() - timedelta(days=90)
+    current_date = datetime.now()
+    stock_data = get_stock_data(ticker_symbol, start_date, current_date)
+    stock_data = calibrate_ema(stock_data, ema_window=12)
+    buy_signals = stock_data['EMA'] < stock_data['Close']
+    sell_signals = stock_data['EMA'] > stock_data['Close']
+    profit = calculate_profit_with_signals(stock_data['Close'], buy_signals, sell_signals, 1000)
+    return profit
+
+def calibrate_stoch(data, stoch_window):
+    stoch = ta.momentum.StochasticOscillator(data['High'], data['Low'], data['Close'], stoch_window)
+    data['Stoch'] = stoch.stoch()
+    return data
+
+def backtest_stoch(ticker_symbol):
+    start_date = datetime.now() - timedelta(days=90)
+    current_date = datetime.now()
+    stock_data = get_stock_data(ticker_symbol, start_date, current_date)
+    stock_data = calibrate_stoch(stock_data, stoch_window=14)
+    buy_signals = stock_data['Stoch'] < 20
+    sell_signals = stock_data['Stoch'] > 80
+    profit = calculate_profit_with_signals(stock_data['Close'], buy_signals, sell_signals, 1000)
+    return profit
+
+def calibrate_bollinger(data, bollinger_window):
+    bollinger = ta.volatility.BollingerBands(data['Close'], bollinger_window)
+    data['Bollinger'] = bollinger.bollinger_mavg()
+    return data
+
+def backtest_bollinger(ticker_symbol):
+    start_date = datetime.now() - timedelta(days=90)
+    current_date = datetime.now()
+    stock_data = get_stock_data(ticker_symbol, start_date, current_date)
+    stock_data = calibrate_bollinger(stock_data, bollinger_window=20)
+    buy_signals = stock_data['Close'] < stock_data['Bollinger']
+    sell_signals = stock_data['Close'] > stock_data['Bollinger']
+    profit = calculate_profit_with_signals(stock_data['Close'], buy_signals, sell_signals, 1000)
+    return profit
+
 def analyze_stock(ticker_symbol,init_price):
     endYear = datetime.now().year
     endMonth = datetime.now().month
@@ -328,16 +437,58 @@ def analyze_stock(ticker_symbol,init_price):
         ("Stochastic", average_stoch_profit)
     ]
 
-    # Sort the list in descending order based on the profit
+    # Sort the list in descending order based on the profit, if the value < 0 remove it
+    profits = [x for x in profits if x[1] > 0]
     profits.sort(key=lambda x: x[1], reverse=True)
 
     # The first element in the sorted list is the best indicator
     best_indicator = profits[0]
 
+    print("profits",profits)
+    print("best_indicator",best_indicator)
+
+    # write a for loop print i check the profits
+    def backtest_profit(ticker_symbol,profits):
+        backtest_result = 0
+        backtest_indicator = ''
+        for index, profit in enumerate(profits):
+            if profit[0] == 'RSI':
+                backtest_result = backtest_rsi(ticker_symbol)
+                backtest_indicator = 'RSI'
+                if backtest_result > 0:
+                    return backtest_result,backtest_indicator
+            elif profit[0] == 'SMA':
+                backtest_result = backtest_sma(ticker_symbol)
+                backtest_indicator = 'SMA'
+                if backtest_result > 0:
+                    return backtest_result,backtest_indicator
+            elif profit[0] == 'EMA':
+                backtest_result = backtest_ema(ticker_symbol)
+                backtest_indicator = 'EMA'
+                print("backtest_result",backtest_result)
+                if backtest_result > 0:
+                    return backtest_result,backtest_indicator
+            elif profit[0] == 'Bollinger':
+                backtest_result = backtest_bollinger(ticker_symbol)
+                backtest_indicator = 'Bollinger'
+                if backtest_result > 0:
+                    return backtest_result,backtest_indicator
+            elif profit[0] == 'Stochastic':
+                backtest_result = backtest_stoch(ticker_symbol)
+                backtest_indicator = 'Stochastic'
+                if backtest_result > 0:
+                    return backtest_result,backtest_indicator
+        return backtest_result,backtest_indicator
+                          
 
     print(f"The best indicator is {best_indicator[0]} with a profit of {best_indicator[1]}")
+    bactest_profit, backtest_indicator = backtest_profit(ticker_symbol,profits)
+    print("bacltestprofit",bactest_profit,"name",backtest_indicator) 
 
-    if best_indicator[1] > 0:
+    
+
+
+    if bactest_profit > 0:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=90)  # Get data for the past year
         data = get_stock_data(ticker_symbol, start_date, end_date)
@@ -349,10 +500,10 @@ def analyze_stock(ticker_symbol,init_price):
         stoch_window = 14
         calibrate_indicators(data, rsi_window, sma_window, ema_window, bollinger_window, stoch_window)
 
-        if best_indicator[0] == 'Stochastic':
+        if backtest_indicator == 'Stochastic':
             buy_signals = data['Stochastic'] < 20
             sell_signals = data['Stochastic'] > 80
-        elif best_indicator[0] == 'SMA':
+        elif backtest_indicator == 'SMA':
             short_window = 5  # Define  short-term window size
             long_window = 20  # Define  long-term window size
 
@@ -363,10 +514,10 @@ def analyze_stock(ticker_symbol,init_price):
             # Generate signals based on crossover strategy
             buy_signals = data['Short_SMA'] > data['Long_SMA']
             sell_signals = data['Short_SMA'] < data['Long_SMA']
-        elif best_indicator[0] == 'RSI':
+        elif backtest_indicator == 'RSI':
             buy_signals = data['RSI'] < 30
             sell_signals = data['RSI'] > 70
-        elif best_indicator[0] == 'EMA':
+        elif backtest_indicator == 'EMA':
             short_window = 5  # Define  short-term window size
             long_window = 20  # Define  long-term window size
 
@@ -377,7 +528,7 @@ def analyze_stock(ticker_symbol,init_price):
             # Generate signals based on crossover strategy
             buy_signals = data['Short_EMA'] > data['Long_EMA']
             sell_signals = data['Short_EMA'] < data['Long_EMA']
-        elif best_indicator[0] == 'Bollinger':
+        elif backtest_indicator == 'Bollinger':
             buy_signals = data['Close'] < data['Bollinger']  # Adjust these conditions as needed
             sell_signals = data['Close'] > data['Bollinger']
 
@@ -405,7 +556,7 @@ def analyze_stock(ticker_symbol,init_price):
             plt.scatter(data.index[-1], data['Close'].iloc[-1], color='purple', label='Predict stock decrease', marker='o', alpha=1)
             today_signal = 'decrease'
 
-        plt.title(f'{best_indicator[0]} is best indicator\n{ticker_symbol} Stock Price with Buy & Sell Signals\nToday ({end_date.strftime("%Y-%m-%d")}): Predict {today_signal} ')
+        plt.title(f'{backtest_indicator} is best indicator\n{ticker_symbol} Stock Price with Buy & Sell Signals\nToday ({end_date.strftime("%Y-%m-%d")}): Predict {today_signal} ')
         plt.xlabel('Date')
         plt.ylabel('Price')
         plt.legend(loc='upper left')
@@ -413,47 +564,40 @@ def analyze_stock(ticker_symbol,init_price):
         #plt.show()
 
         
-        if  best_indicator[0] == 'SMA':
-            results = {
-                "Average SMA profit": average_sma_profit,
-                "Average SMA final price": average_sma_final_price,
-                "Average SMA return rate": average_sma_return_rate,
-                "Average SMA Sharpe ratio": average_sma_sharpe_ratio,
-                "Image": "predict.png"  # path to the image
-            }
-        elif best_indicator[0] == 'RSI':
-            results = {
-                "Average RSI profit": average_rsi_profit,
-                "Average RSI final price": average_rsi_final_price,
-                "Average RSI return rate": average_rsi_return_rate,
-                "Average RSI Sharpe ratio": average_rsi_sharpe_ratio,
-                "Image": "predict.png"  # path to the image
-            }
-        elif best_indicator[0] == 'EMA':
-            results = {
-                "Average EMA profit": average_ema_profit,
-                "Average EMA final price": average_ema_final_price,
-                "Average EMA return rate": average_ema_return_rate,
-                "Average EMA Sharpe ratio": average_ema_sharpe_ratio,
-                "Image": "predict.png"  # path to the image
-            }
-        elif best_indicator[0] == 'Bollinger':
-            results = {
-                "Average Bollinger Bands profit": average_bollinger_profit,
-                "Average Bollinger Bands final price": average_bollinger_final_price,
-                "Average Bollinger Bands return rate": average_bollinger_return_rate,
-                "Average Bollinger Bands Sharpe ratio": average_bollinger_sharpe_ratio,
-                "Image": "predict.png"  # path to the image
-            }
-        elif best_indicator[0] == 'Stochastic':
-            results = {
-                "Average Stochastic Oscillator profit": average_stoch_profit,
-                "Average Stochastic Oscillator final price": average_stoch_final_price,
-                "Average Stochastic Oscillator return rate": average_stoch_return_rate,
-                "Average Stochastic Oscillator Sharpe ratio": average_stoch_sharpe_ratio,
-                "Image": "predict.png"  # path to the image
-            }
-        
+        results = { 
+            "SMA": {
+                "Average SMA profit": average_sma_profit, 
+                "Average SMA final price": average_sma_final_price, 
+                "Average SMA return rate": average_sma_return_rate, 
+                "Average SMA Sharpe ratio": average_sma_sharpe_ratio 
+            }, 
+            "RSI": {
+                "Average RSI profit": average_rsi_profit, 
+                "Average RSI final price": average_rsi_final_price, 
+                "Average RSI return rate": average_rsi_return_rate, 
+                "Average RSI Sharpe ratio": average_rsi_sharpe_ratio 
+            }, 
+            "EMA": {
+                "Average EMA profit": average_ema_profit, 
+                "Average EMA final price": average_ema_final_price, 
+                "Average EMA return rate": average_ema_return_rate, 
+                "Average EMA Sharpe ratio": average_ema_sharpe_ratio
+            }, 
+            "Bollinger": {
+                "Average Bollinger profit": average_bollinger_profit, 
+                "Average Bollinger final price": average_bollinger_final_price, 
+                "Average Bollinger return rate": average_bollinger_return_rate, 
+                "Average Bollinger Sharpe ratio": average_bollinger_sharpe_ratio
+            }, 
+            "Stochastic": {
+                "Average Stochastic profit": average_stoch_profit, 
+                "Average Stochastic final price": average_stoch_final_price, 
+                "Average Stochastic return rate": average_stoch_return_rate, 
+                "Average Stochastic Sharpe ratio": average_stoch_sharpe_ratio
+            }, 
+            "Image": "predict.png" # path to the image 
+        } 
+  
         return results
     else:
         results = {

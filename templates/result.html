@@ -17,32 +17,60 @@
         padding: 30px;
     }
 
-    h1{
+    h1 {
         letter-spacing: 5px;
         margin-bottom: 30px;
     }
 
 
-    /* <p><b>{{ key }}</b> <span>{{ value }}</span></p> */
-    /* i want the <b> display in left <span> display in right */
-    p {
-        display: flex;
-        justify-content: space-between;
-        width: 500px;
+    table {
+        border-collapse: collapse;
+        width: 800px;
+        margin-bottom: 30px;
     }
 
+    th,
+    td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+
+    th {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
 </style>
 
 <body>
+
     <div>
-        <h1>Stock Analysis Results</h1>
-        {% for key, value in results.items() %}
-        {% if key == 'Image' %}
-        <img src="{{ url_for('static', filename=value) }}" alt="Predicted stock performance" width="800px">
-        {% else %}
-        <p><b>{{ key }}</b> <span>{{ value }}</span></p>
-        {% endif %}
-        {% endfor %}
+        <h1>Analysis Results (Past data)</h1>
+        <table>
+            <tr>
+                <th>Indicator</th>
+                <th>Profit</th>
+                <th>Final Price</th>
+                <th>Return Rate</th>
+                <th>Sharpe ratio</th>
+            </tr>
+            {% for indicator, metrics in results.items() %}
+            {% if indicator != 'Image' %}
+            <tr>
+                <td>{{ indicator }}</td>
+                <td>{{ metrics['Average ' + indicator + ' profit']|round(2) }}</td>
+                <td>{{ metrics['Average ' + indicator + ' final price']|round(2) }}</td>
+                <td>{{ metrics['Average ' + indicator + ' return rate']|round(2) }}</td>
+                <td>{{ metrics['Average ' + indicator + ' Sharpe ratio']|round(2) }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </table>
+        <img src="{{ url_for('static', filename=results['Image']) }}" alt="Predicted stock performance" width="800px">
     </div>
 
 </body>
