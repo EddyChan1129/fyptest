@@ -61,6 +61,9 @@
         margin-top: 20px;
     }
 
+    #init_price{
+        display: none;
+    }
 </style>
 
 <body>
@@ -68,7 +71,7 @@
     <form method="POST">
         <h1>STOCK PREDICTION</h1>
         <input type="text" id="ticker" name="ticker" placeholder=" Input stock symbol e.g AAPL" required>
-        <input type="number" id="init_price" name="init_price"  placeholder=" Input price e.g 1000"  required>
+        <input type="number" id="init_price" name="init_price"  placeholder=" Input price e.g 1000" value="1000"  required>
         <button type="submit" class="btn btn-primary">Submit</button>
 
     </form>

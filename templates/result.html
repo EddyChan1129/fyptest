@@ -51,6 +51,7 @@
     <div>
         <h1>Analysis Results (Past data)</h1>
         <table>
+            {% if results['Image'] %}
             <tr>
                 <th>Indicator</th>
                 <th>Profit</th>
@@ -58,8 +59,13 @@
                 <th>Return Rate</th>
                 <th>Sharpe ratio</th>
             </tr>
+            {% else %}              
+            <p>There is no suitable TA</p>
+            {% endif %}
+           
+
             {% for indicator, metrics in results.items() %}
-            {% if indicator != 'Image' %}
+            {% if indicator != 'Image' and 'Average ' + indicator + ' profit' in metrics %}
             <tr>
                 <td>{{ indicator }}</td>
                 <td>{{ metrics['Average ' + indicator + ' profit']|round(2) }}</td>
@@ -70,7 +76,13 @@
             {% endif %}
             {% endfor %}
         </table>
+        <!-- if  url_for('static', filename=results['Image']) doesnt have value not print next line -->
+        {% if results['Image'] %}
+        <h1>Stock Performance Prediction</h1>
         <img src="{{ url_for('static', filename=results['Image']) }}" alt="Predicted stock performance" width="800px">
+        {% endif %}
+        <a href="javascript:history.back()">Go back</a>
+    
     </div>
 
 </body>

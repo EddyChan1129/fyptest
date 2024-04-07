@@ -442,7 +442,11 @@ def analyze_stock(ticker_symbol,init_price):
     profits.sort(key=lambda x: x[1], reverse=True)
 
     # The first element in the sorted list is the best indicator
-    best_indicator = profits[0]
+    # If profits.length > 0
+    if len(profits) > 0:
+        best_indicator = profits[0]
+    else:
+        best_indicator = ("No suitable indicator found", 0)
 
     print("profits",profits)
     print("best_indicator",best_indicator)
@@ -488,7 +492,7 @@ def analyze_stock(ticker_symbol,init_price):
     
 
 
-    if bactest_profit > 0:
+    if bactest_profit > 0 and best_indicator[1] > 0:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=90)  # Get data for the past year
         data = get_stock_data(ticker_symbol, start_date, end_date)
