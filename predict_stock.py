@@ -437,6 +437,7 @@ def analyze_stock(ticker_symbol,init_price):
         ("Stochastic", average_stoch_profit)
     ]
 
+
     # Sort the list in descending order based on the profit, if the value < 0 remove it
     profits = [x for x in profits if x[1] > 0]
     profits.sort(key=lambda x: x[1], reverse=True)
@@ -566,42 +567,49 @@ def analyze_stock(ticker_symbol,init_price):
         plt.legend(loc='upper left')
         plt.savefig('./static/predict.png')  # Save the plot as a PNG file
         #plt.show()
-
-        
-        results = { 
-            "SMA": {
+        results = {}
+        if average_sma_profit > 0:
+            results["SMA"] = {
                 "Average SMA profit": average_sma_profit, 
                 "Average SMA final price": average_sma_final_price, 
                 "Average SMA return rate": average_sma_return_rate, 
                 "Average SMA Sharpe ratio": average_sma_sharpe_ratio 
-            }, 
-            "RSI": {
+            }
+        if average_rsi_profit > 0:
+            results["RSI"] = {
                 "Average RSI profit": average_rsi_profit, 
                 "Average RSI final price": average_rsi_final_price, 
                 "Average RSI return rate": average_rsi_return_rate, 
                 "Average RSI Sharpe ratio": average_rsi_sharpe_ratio 
-            }, 
-            "EMA": {
+            }
+        
+        if average_ema_profit > 0:
+            results["EMA"] = {
                 "Average EMA profit": average_ema_profit, 
                 "Average EMA final price": average_ema_final_price, 
                 "Average EMA return rate": average_ema_return_rate, 
                 "Average EMA Sharpe ratio": average_ema_sharpe_ratio
-            }, 
-            "Bollinger": {
+            }
+        
+        if average_bollinger_profit > 0:
+            results["Bollinger"] = {
                 "Average Bollinger profit": average_bollinger_profit, 
                 "Average Bollinger final price": average_bollinger_final_price, 
                 "Average Bollinger return rate": average_bollinger_return_rate, 
                 "Average Bollinger Sharpe ratio": average_bollinger_sharpe_ratio
-            }, 
-            "Stochastic": {
+            }
+
+        if average_stoch_profit > 0:
+            results["Stochastic"] = {
                 "Average Stochastic profit": average_stoch_profit, 
                 "Average Stochastic final price": average_stoch_final_price, 
                 "Average Stochastic return rate": average_stoch_return_rate, 
                 "Average Stochastic Sharpe ratio": average_stoch_sharpe_ratio
-            }, 
-            "Image": "predict.png" # path to the image 
-        } 
-  
+            }
+
+        results["Image"] = "predict.png"
+        
+      
         return results
     else:
         results = {
