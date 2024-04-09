@@ -3,6 +3,7 @@
 
 <head>
     <title>Stock Analysis Results</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 
 <style>
@@ -25,7 +26,7 @@
 
     table {
         border-collapse: collapse;
-        width: 800px;
+        width: 1300px;
         margin-bottom: 30px;
     }
 
@@ -39,10 +40,16 @@
     th {
         background-color: #4CAF50;
         color: white;
+        width: 15%;
+    }
+
+    #table1 th {
+        background-color: #08a5a5;
+        color: white;
     }
 
     tr:nth-child(even) {
-        background-color: #f2f2f2;
+        background-color: #f2f2f262;
     }
 </style>
 
@@ -50,41 +57,124 @@
 
     <div>
         <h1>Analysis Results (Past data)</h1>
-        <table>
-            {% if results['Image'] %}
-            <tr>
-                <th>Indicator</th>
-                <th>Profit</th>
-                <th>Final Price</th>
-                <th>Return Rate</th>
-                <th>Sharpe ratio</th>
-            </tr>
-            {% else %}              
-            <p>There is no suitable TA</p>
-            {% endif %}
-           
+        <div>
+            <table id="table1">
+                {% if results['Image'] %}
+                <tr>
+                    <th>Ranking</th>
+                    <th>Indicator</th>
+                    <th>Profit</th>
+                    <th>Final Price</th>
+                    <th>Return Rate</th>
+                    <th>Sharpe ratio</th>
+                </tr>
+                {% else %}
+                <p>There is no suitable TA</p>
+                {% endif %}
 
-            {% for indicator, metrics in results.items() %}
-            {% if indicator != 'Image' and 'Average ' + indicator + ' profit' in metrics %}
-            <tr>
-                <td>{{ indicator }}</td>
-                <td>{{ metrics['Average ' + indicator + ' profit']|round(2) }}</td>
-                <td>{{ metrics['Average ' + indicator + ' final price']|round(2) }}</td>
-                <td>{{ metrics['Average ' + indicator + ' return rate']|round(2) }}</td>
-                <td>{{ metrics['Average ' + indicator + ' Sharpe ratio']|round(2) }}</td>
-            </tr>
-            {% endif %}
-            {% endfor %}
-        </table>
+
+                {% for indicator, metrics in results.items() %}
+                {% if indicator != 'Image' and 'Average ' + indicator + ' profit' in metrics %}
+                <tr>
+                    <td>{{ indicator }}</td>
+                    <td>{{ metrics['Average ' + indicator + ' profit']|round(2) }}</td>
+                    <td>{{ metrics['Average ' + indicator + ' final price']|round(2) }}</td>
+                    <td>{{ metrics['Average ' + indicator + ' return rate']|round(3) }}</td>
+                    <td>{{ metrics['Average ' + indicator + ' Sharpe ratio']|round(2) }}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </table>
+        </div>
+
+
+
+        <h1>Backtest Results (Currect 3 Month)</h1>
+        <div>
+            <table id="table2">
+                {% if results['Image'] %}
+                <tr>
+                    <th>Ranking</th>
+                    <th>Backtest Indicator</th>
+                    <th>Backtest Profit</th>
+                    <th>Backtest Final Price</th>
+                    <th>Backtest Return Rate</th>
+                    <th>Backtest Sharpe ratio</th>
+                </tr>
+                {% else %}
+                <p>There is no suitable TA</p>
+                {% endif %}
+
+
+                {% for indicator, metrics in results.items() %}
+                {% if indicator != 'Image' and 'Backtest ' + indicator + ' profit' in metrics %}
+                <tr>
+                    <td>
+                        {% if indicator == 'backtest_SMA' %}
+                        SMA
+                        {% elif indicator == 'backtest_EMA' %}
+                        EMA
+                        {% elif indicator == 'backtest_Stochastic' %}
+                        Stochastic
+                        {% elif indicator == 'backtest_Bollinger' %}
+                        Bollinger
+                        {% elif indicator == 'backtest_RSI' %}
+                        RSI
+                        {% else %}
+                        {{ indicator }}
+                        {% endif %}
+                    </td>
+                    <td>{{ metrics['Backtest ' + indicator + ' profit']|round(2) }}</td>
+                    <td>{{ metrics['Backtest ' + indicator + ' final price']|round(2) }}</td>
+                    <td>{{ metrics['Backtest ' + indicator + ' return rate']|round(3) }}</td>
+                    <td>{{ metrics['Backtest ' + indicator + ' Sharpe ratio']|round(2) }}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </table>
+        </div>
         <!-- if  url_for('static', filename=results['Image']) doesnt have value not print next line -->
         {% if results['Image'] %}
         <h1>Stock Performance Prediction</h1>
-        <img src="{{ url_for('static', filename=results['Image']) }}" alt="Predicted stock performance" width="800px">
+        <img src="{{ url_for('static', filename=results['Image']) }}" alt="Predicted stock performance" width="1300px">
         {% endif %}
         <a href="javascript:history.back()">Go back</a>
-    
+
     </div>
 
 </body>
 
 </html>
+
+<script>
+    $(document).ready(function () {
+        // Sort first table
+        var $table1 = $('#table1');
+        var rows1 = $table1.find('tr:gt(0)').toArray().sort(comparer(1)); // Change the index to the column I want to sort
+        $table1.append(rows1);
+
+        // Add index to each row
+        $table1.find('tr:gt(0)').each(function (index) {
+            $(this).prepend('<td>' + (index + 1) + '</td>');
+        });
+
+        // Sort second table
+        var $table2 = $('#table2');
+        var rows2 = $table2.find('tr:gt(0)').toArray().sort(comparer(1)); // Change the index to the column I want to sort
+        $table2.append(rows2);
+
+        // Add index to each row
+        $table2.find('tr:gt(0)').each(function (index) {
+            $(this).prepend('<td>' + (index + 1) + '</td>');
+        });
+    });
+
+    function comparer(index) {
+        return function (a, b) {
+            var valA = getCellValue(a, index), valB = getCellValue(b, index);
+            return $.isNumeric(valA) && $.isNumeric(valB) ? valB - valA : valA.localeCompare(valB);
+        }
+    }
+
+    function getCellValue(row, index) { return $(row).children('td').eq(index).text() }
+</script>
